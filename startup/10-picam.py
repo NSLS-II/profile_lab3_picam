@@ -78,7 +78,7 @@ class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
         set_and_wait(self.enable, 1)
         sigs = OrderedDict([(self.parent.cam.array_callbacks, 1),
                             (self.parent.cam.image_mode, 'Single'),
-                            (self.parent.cam.trigger_mode, 'Fixed Rate'),  # updated here "Internal" -> "Fixed Rate"
+                            (self.parent.cam.trigger_mode, 0),  # updated here "Internal" -> "No Response"
                             # just in case tha acquisition time is set very long...
                             (self.parent.cam.acquire_time, 1),
                             (self.parent.cam.acquire_period, 1),
@@ -102,12 +102,28 @@ class HDF5PluginWithFileStorePICam(HDF5PluginWithFileStoreBase):
         else:
             return 1
 
+    def stage(self):
+        super().stage()
+        set_and_wait(self.enable, 1)
+        sigs = OrderedDict([(self.parent.cam.array_callbacks, 1),
+                            (self.parent.cam.image_mode, 'Single'),
+                            (self.parent.cam.trigger_mode, 0),  # updated here "Internal" -> "No Response"
+                            # just in case tha acquisition time is set very long...
+                            (self.parent.cam.acquire_time, 1),
+                            (self.parent.cam.acquire_period, 1),
+                            (self.parent.cam.acquire, 1)])
 
-class TIFFPluginEnsuredOff(TIFFPlugin):
-    """Add this as a component to detectors that do not write TIFFs."""
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.stage_sigs.update([('auto_save', 'No')])
+        original_vals = {sig: sig.get() for sig in sigs}
+
+        for sig, val in sigs.items():
+            ttime.sleep(0.1)  # abundance of caution
+            set_and_wait(sig, val)
+
+        ttime.sleep(2)  # wait for acquisition
+
+        for sig, val in reversed(list(original_vals.items())):
+            ttime.sleep(0.1)
+            set_and_wait(sig, val)
 
 
 class StandardPICam(SingleTriggerV33, PICamDetectorV33):

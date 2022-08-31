@@ -5,8 +5,6 @@ import ophyd.signal
 import matplotlib.pyplot as plt
 
 ophyd.signal.EpicsSignal.set_defaults(connection_timeout=5)
-                      magics=True, mpl=True, epics_context=False)
-
 
 # At the end of every run, verify that files were saved and
 # print a confirmation message.
